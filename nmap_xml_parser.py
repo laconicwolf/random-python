@@ -51,8 +51,8 @@ def get_host_data(root):
             service = port.findall('service')[0].attrib['name']
 
             try:
-                script_id = ports[0].findall('script')[0].attrib['id']
-                script_output = ports[0].findall('script')[0].attrib['output']
+                script_id = port.findall('script')[0].attrib['id']
+                script_output = port.findall('script')[0].attrib['output']
             except IndexError:
                 script_id = ''
                 script_output = ''
