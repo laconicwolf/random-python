@@ -38,6 +38,12 @@ def get_host_data(root):
             host_name = host_name_element[0].findall('hostname')[0].attrib['name']
         except IndexError:
             host_name = ''
+
+        try:
+            os_element = host.findall('os')
+            os_name = os_element[0].findall('osmatch')[0].attrib['name']
+        except IndexError:
+            os_name = ''
         
         port_element = host.findall('ports')
         ports = port_element[0].findall('port')
@@ -51,12 +57,26 @@ def get_host_data(root):
             service = port.findall('service')[0].attrib['name']
 
             try:
+                product = port.findall('service')[0].attrib['product']
+            except (IndexError, KeyError):
+                product = ''
+                               
+            try:
+                servicefp = port.findall('service')[0].attrib['servicefp']
+            except (IndexError, KeyError):
+                servicefp = ''
+
+            try:
                 script_id = port.findall('script')[0].attrib['id']
-                script_output = port.findall('script')[0].attrib['output']
-            except IndexError:
+            except (IndexError, KeyError):
                 script_id = ''
+
+            try:
+                script_output = port.findall('script')[0].attrib['output']
+            except (IndexError, KeyError):
                 script_output = ''
-            port_data.extend((ip_address, host_name, proto, port_id, service, script_id, script_output))
+
+            port_data.extend((ip_address, host_name, os_name, proto, port_id, service, product, servicefp, script_id, script_output))
             host_data.append(port_data)
     
     return host_data
@@ -77,9 +97,9 @@ def parse_to_csv(data):
     if not os.path.isfile(csv_name):
         csv_file = open(csv_name, 'w', newline='')
         csv_writer = csv.writer(csv_file)
-        top_row = ['IP', 'Host', 'Proto', 'Port', 'Service', 'NSE Script ID', 'NSE Script Output', 'Notes']
+        top_row = ['IP', 'Host', 'OS', 'Proto', 'Port', 'Service', 'Product', 'Service FP', 'NSE Script ID', 'NSE Script Output', 'Notes']
         csv_writer.writerow(top_row)
-        print(' [+]  The file {} does not exist. New file created!'.format(csv_name))
+        print('\n [+]  The file {} does not exist. New file created!\n'.format(csv_name))
     else:
         try:
             csv_file = open(csv_name, 'a', newline='')
