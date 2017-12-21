@@ -2,6 +2,7 @@ import xml.etree.ElementTree as etree
 import os
 import csv
 import argparse
+from collections import Counter
 
 
 __author__ = 'Jake Miller (@LaconicWolf)'
@@ -129,6 +130,32 @@ def list_ip_addresses(data):
         print(ip)
 
 
+def least_common_ports(data, n):
+    n = int(n)
+    c = Counter()
+    for item in data:
+        port = item[4]
+        c.update([port])
+
+    print("\nLEAST COMMON PORTS\n")
+    print("{0:8} {1:15}\n".format('PORT', 'OCCURENCES'))
+    for p in c.most_common()[:-n-1:-1]:
+        print("{0:5} {1:8}".format(p[0], p[1]))
+
+
+def most_common_ports(data, n):
+    n = int(n)
+    c = Counter()
+    for item in data:
+        port = item[4]
+        c.update([port])
+
+    print("\nLEAST COMMON PORTS\n")
+    print("{0:8} {1:15}\n".format('PORT', 'OCCURENCES'))
+    for p in c.most_common():
+        print("{0:5} {1:8}".format(p[0], p[1]))
+
+
 def print_data(data):
     """ Prints the data to the terminal
     """
@@ -144,6 +171,10 @@ def main():
         list_ip_addresses(data)
     if args.print_all:
         print_data(data)
+    if args.least_common_ports:
+        least_common_ports(data, args.least_common_ports)
+    if args.most_common_ports:
+        most_common_ports(data, args.most_common_ports)
 
 
 if __name__ == '__main__':
@@ -152,6 +183,8 @@ if __name__ == '__main__':
     parser.add_argument("-ip", "--ip_addresses", help="display a list of ip addresses", action="store_true")
     parser.add_argument("-csv", "--csv", nargs='?', const='scan.csv', help="specify the name of a csv file to write to. If the file already exists it will be appended")
     parser.add_argument("-f", "--filename", help="specify a file containing the output of an nmap scan in xml format.")
+    parser.add_argument("-lc", "--least_common_ports", help="displays the least n number of port numbers.")
+    parser.add_argument("-mc", "--most_common_ports", help="displays the most n number of port numbers.")
     args = parser.parse_args()
 
     if not args.filename:
@@ -159,7 +192,7 @@ if __name__ == '__main__':
         print("\n [-]  Please specify an input file to parse. Use -f <nmap_scan.xml> to specify the file\n")
         exit()
 
-    if not args.ip_addresses and not args.csv and not args.print_all:
+    if not args.ip_addresses and not args.csv and not args.print_all and not args.least_common_ports and not args.most_common_ports:
         parser.print_help()
         print("\n [-]  Please choose an output option. Use -csv, -ip, or -p\n")
         exit()
