@@ -131,6 +131,8 @@ def list_ip_addresses(data):
 
 
 def least_common_ports(data, n):
+    """ Examines the port index from data and returns the least common ports
+    """
     n = int(n)
     c = Counter()
     for item in data:
@@ -144,6 +146,8 @@ def least_common_ports(data, n):
 
 
 def most_common_ports(data, n):
+    """ Examines the port index from data and returns the most common ports
+    """
     n = int(n)
     c = Counter()
     for item in data:
@@ -183,8 +187,8 @@ if __name__ == '__main__':
     parser.add_argument("-ip", "--ip_addresses", help="display a list of ip addresses", action="store_true")
     parser.add_argument("-csv", "--csv", nargs='?', const='scan.csv', help="specify the name of a csv file to write to. If the file already exists it will be appended")
     parser.add_argument("-f", "--filename", help="specify a file containing the output of an nmap scan in xml format.")
-    parser.add_argument("-lc", "--least_common_ports", help="displays the least n number of port numbers.")
-    parser.add_argument("-mc", "--most_common_ports", help="displays the most n number of port numbers.")
+    parser.add_argument("-lc", "--least_common_ports", help="displays the least common open ports.")
+    parser.add_argument("-mc", "--most_common_ports", help="displays the most common open ports.")
     args = parser.parse_args()
 
     if not args.filename:
