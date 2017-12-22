@@ -83,7 +83,7 @@ def get_host_data(root):
     return host_data
 
 
-def parse_xml():
+def parse_xml(filename):
     """ Calls functions to read the xml and extract elements and values
     """
     root = get_xml_root(filename)
@@ -139,7 +139,6 @@ def least_common_ports(data, n):
         port = item[4]
         c.update([port])
 
-    print("\nLEAST COMMON PORTS\n")
     print("{0:8} {1:15}\n".format('PORT', 'OCCURENCES'))
     for p in c.most_common()[:-n-1:-1]:
         print("{0:5} {1:8}".format(p[0], p[1]))
@@ -154,9 +153,8 @@ def most_common_ports(data, n):
         port = item[4]
         c.update([port])
 
-    print("\nLEAST COMMON PORTS\n")
     print("{0:8} {1:15}\n".format('PORT', 'OCCURENCES'))
-    for p in c.most_common():
+    for p in c.most_common(n):
         print("{0:5} {1:8}".format(p[0], p[1]))
 
 
@@ -168,17 +166,20 @@ def print_data(data):
 
 
 def main():
-    data = parse_xml()
-    if args.csv:
-        parse_to_csv(data)
-    if args.ip_addresses:
-        list_ip_addresses(data)
-    if args.print_all:
-        print_data(data)
-    if args.least_common_ports:
-        least_common_ports(data, args.least_common_ports)
-    if args.most_common_ports:
-        most_common_ports(data, args.most_common_ports)
+    for filename in args.filename:
+        data = parse_xml(filename)
+        if args.csv:
+            parse_to_csv(data)
+        if args.ip_addresses:
+            list_ip_addresses(data)
+        if args.print_all:
+            print_data(data)
+        if args.least_common_ports:
+            print("\n{} LEAST COMMON PORTS".format(filename.upper()))
+            least_common_ports(data, args.least_common_ports)
+        if args.most_common_ports:
+            print("\n{} MOST COMMON PORTS".format(filename.upper()))
+            most_common_ports(data, args.most_common_ports)
 
 
 if __name__ == '__main__':
@@ -186,7 +187,7 @@ if __name__ == '__main__':
     parser.add_argument("-p", "--print_all", help="display scan information to the screen", action="store_true")
     parser.add_argument("-ip", "--ip_addresses", help="display a list of ip addresses", action="store_true")
     parser.add_argument("-csv", "--csv", nargs='?', const='scan.csv', help="specify the name of a csv file to write to. If the file already exists it will be appended")
-    parser.add_argument("-f", "--filename", help="specify a file containing the output of an nmap scan in xml format.")
+    parser.add_argument("-f", "--filename", nargs='*', help="specify a file containing the output of an nmap scan in xml format.")
     parser.add_argument("-lc", "--least_common_ports", help="displays the least common open ports.")
     parser.add_argument("-mc", "--most_common_ports", help="displays the most common open ports.")
     args = parser.parse_args()
@@ -201,6 +202,5 @@ if __name__ == '__main__':
         print("\n [-]  Please choose an output option. Use -csv, -ip, or -p\n")
         exit()
 
-    filename = args.filename
     csv_name = args.csv
     main()
