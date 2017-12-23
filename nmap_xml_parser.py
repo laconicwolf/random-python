@@ -3,6 +3,13 @@ import os
 import csv
 import argparse
 from collections import Counter
+from sys import version
+from time import sleep
+
+
+if not version.startswith('3'):
+    print('\nThis script is inteded to be run with Python3. If using another version and encounter an error, try using Python3\n')
+    sleep(3)
 
 
 __author__ = 'Jake Miller (@LaconicWolf)'
@@ -33,8 +40,10 @@ def get_host_data(root):
     for host in hosts:
         if not host.findall('status')[0].attrib['state'] == 'up':
             continue
+
         ip_address = host.findall('address')[0].attrib['addr']
         host_name_element = host.findall('hostnames')
+
         try:
             host_name = host_name_element[0].findall('hostname')[0].attrib['name']
         except IndexError:
@@ -53,6 +62,7 @@ def get_host_data(root):
             port_data = []
             if not port.findall('state')[0].attrib['state'] == 'open':
                 continue
+
             proto = port.attrib['protocol']
             port_id = port.attrib['portid']
             service = port.findall('service')[0].attrib['name']
