@@ -6,9 +6,13 @@ try:
     import time
     import random
     import csv
-    from requests.auth import HTTPBasicAuth
-    from requests.auth import HTTPDigestAuth
-    from requests_ntlm import HttpNtlmAuth
+    import threading
+    from queue import Queue
+
+    # need these if I implement authentication testing
+    #from requests.auth import HTTPBasicAuth
+    #from requests.auth import HTTPDigestAuth
+    #from requests_ntlm import HttpNtlmAuth
     from requests.packages.urllib3.exceptions import InsecureRequestWarning
     from selenium import webdriver
     from selenium.webdriver import DesiredCapabilities
@@ -65,12 +69,15 @@ def check_site_title(resp_obj, url):
             if args.verbose:
                 print(" [-] An error occurred with PhantomJS")
             title == ""
-
+            
             return title
 
         browser.get(url)
         WebDriverWait(browser, 2)
         title = browser.title
+        if args.screenshot_no_title and title == '':
+            screen_shot_name = url.split('//')[1].split(':')[0]
+            browser.save_screenshot(screen_shot_name + '.png')
         browser.close()
 
     else: 
@@ -102,6 +109,7 @@ def get_random_useragent():
 
     return ua_dict[rand_num]
 
+
 def parse_to_csv(data):
     ''' Takes a list and outputs to a csv file.
     '''
@@ -129,43 +137,52 @@ def parse_to_csv(data):
     csv_file.close()
 
 
-def main():
+def print_data(data):
+    """ Prints the data to the terminal
+    """
+    for item in data:
+        print(' '.join(item))
 
-    data = []
-    print('\n [+]  Loaded {} URLs to check'.format(len(urls)))
-    print(' [+]  Checking each URL...\n')
 
-    for url in urls:
-        site_data = []
+def main(url):
+    ''' Main function where the action happens
+    '''
+    url = url.get()
 
-        requestor = build_requests_object()     
+    site_data = []
+
+    requestor = build_requests_object()
+
+    if args.verbose:
+        print("\n [+]  Checking {}...".format(url))
+    try:
+        resp = requestor.get(url, verify=False, timeout=2)
+    except:
         if args.verbose:
-            print("\n [+]  Checking {}...".format(url))
-        try:
-            resp = requestor.get(url, verify=False, timeout=2)
-        except:
-            if args.verbose:
-                print(' [-]  Unable to connect to site: {}'.format(url))
-            continue
+            print(' [-]  Unable to connect to site: {}'.format(url))
+        url_queue.task_done()
+        return
 
-        title = check_site_title(resp, url)
-        server = resp.headers['Server'] if 'Server' in resp.headers else ''
-        redir_url = resp.url if resp.url.strip('/') != url else ""
-        print(title)
-        site_data.extend((url, redir_url, title, server))
-        print(site_data)
-        data.append(site_data)
-
-    if args.csv:
-        parse_to_csv(data)
+    title = check_site_title(resp, url)
+    server = resp.headers['Server'] if 'Server' in resp.headers else ''
+    redir_url = resp.url if resp.url.strip('/') != url else ""
+    site_data.extend((url, redir_url, title, server))
+    if args.print_all or args.verbose:
+        print(' '.join(site_data))
+    data.append(site_data)
+    url_queue.task_done()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
-    parser.add_argument("-p", "--proxy", help="specify a proxy to use (-p 127.0.0.1:8080)")
+    parser.add_argument("-p", "--print_all", help="display scan information to the screen", action="store_true")
+    parser.add_argument("-snt", "--screenshot_no_title", help="Takes a screenshot if no title is found", action="store_true")
+    #parser.add_argument("-s", "--screenshot", help="Takes a screenshot of each page", action="store_true")
+    parser.add_argument("-pr", "--proxy", help="specify a proxy to use (-p 127.0.0.1:8080)")
     parser.add_argument("-csv", "--csv", nargs='?', const='results.csv', help="specify the name of a csv file to write to. If the file already exists it will be appended")
     parser.add_argument("-uf", "--url_file", help="specify a file containing urls formatted http(s)://addr:port.")
+    parser.add_argument("-t", "--threads", nargs="?", type=int, default=1, help="specify number of threads (default=1)")
     args = parser.parse_args()
 
     if not args.url_file:
@@ -180,8 +197,39 @@ if __name__ == '__main__':
             exit()
         urls = open(urlfile).read().splitlines()
         
+    if not args.print_all and not args.verbose and not args.csv:
+        parser.print_help()
+        print("\n [-]  Please specify an output option. Use -p to print to screen and/or -csv to output to a CSV file.\n")
+        exit()
+        
     csv_name = args.csv
 
     requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+    #threads = 1
+    lock = threading.Lock()
+    url_queue = Queue()
 
-    main()
+    print('\n [+]  Loaded {} URLs to check\n'.format(len(urls)))
+
+    data = []
+    worker_threads = []
+    thread_counter = 0
+    thread_max = args.threads
+
+    for url in urls:
+        url_queue.put(url)
+        thread_counter += 1
+        if thread_counter == thread_max:
+            time.sleep(5)
+            thread_counter = 0
+    
+        for i in range(1):
+            worker_thread = threading.Thread(target=main, args=(url_queue,))
+            worker_threads.append(worker_thread)
+            worker_thread.start()
+
+    for worker_thread in worker_threads:
+        worker_thread.join()
+    print('test')
+    if args.csv:
+        parse_to_csv(data)
