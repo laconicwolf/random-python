@@ -138,13 +138,17 @@ def parse_to_csv(data):
 
 
 def directories():
+    ''' Returns a list of directories to be browsed.
+    '''
     dirs = ['/oam/auth/auth_cred_submit', '/iam', '/server-status']
+
     return dirs
 
 
 def print_data(data):
     ''' Prints the data to the terminal
     '''
+    # removes newlines from the directory item if exists
     if '\n' in data[4]:
         data[4] = data[4].replace('\n', ' ')
     print(' '.join(data))
@@ -162,6 +166,8 @@ def bust_dirs(url, dirbust_dir, server, title, req_obj):
         if args.verbose:
             print(' [-]  Unable to connect to site: {}'.format(url))
         return ""
+
+    # resp.ok will be True on a redirect, so this makes sure the request wasn't redirected
     if resp.ok and resp.url.strip('/') == url_dir and not 'burp suite professional' in title.lower():
         return dirbust_dir
     else:
@@ -171,12 +177,16 @@ def bust_dirs(url, dirbust_dir, server, title, req_obj):
 def main(url):
     ''' Main function where the action happens
     '''
+    # fetches url from the queue
     url = url.get()
 
+    # intialize empty list to store data 
     site_data = []
 
+    # builds a request object with a random user agent and proxy if specified
     requestor = build_requests_object()
 
+    # attempts to connect to the site
     if args.verbose:
         print("\n [+]  Checking {}...".format(url))
     try:
@@ -187,21 +197,30 @@ def main(url):
         url_queue.task_done()
         return
 
+    # checks the site's title, server, and redirect url. Returns "" if it doesn't exist
     title = check_site_title(resp, url)
-    server = resp.headers['Server'] if 'Server' in resp.headers else ''
+    server = resp.headers['Server'] if 'Server' in resp.headers else ""
     redir_url = resp.url if resp.url.strip('/') != url else ""
 
+    # initializes empty list to contain valid directories, and dirbusts if option is specified
     dirs = []
     if args.dirbust:
         for dirbust_dir in dirbust_dirs:
             found_dir = bust_dirs(url, dirbust_dir, server, title, requestor)
             dirs.append(found_dir)
-
     directories = '\n'.join(dirs)
+    
+    # populates the site_data variable with all of the captured data
     site_data.extend((url, redir_url, title, server, directories))
+
+    # prints output to the screen
     if args.print_all or args.verbose:
         print_data(site_data)
+
+    # populates site_data too the data list
     data.append(site_data)
+
+    # reports task done to the queue
     url_queue.task_done()
 
 
@@ -261,14 +280,18 @@ if __name__ == '__main__':
         
     csv_name = args.csv
 
+    # suppress SSL warnings in the terminal
     requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
- 
-    lock = threading.Lock()
+    
+    # initiates the queue
     url_queue = Queue()
 
     print('\n [+]  Loaded {} URLs to check\n'.format(len(urls)))
 
+    # initialize the main data list that will be appended to for each url requested
     data = []
+
+    # initializes threads. This is definitely not the best way to do things...
     worker_threads = []
     thread_counter = 0
     thread_max = args.threads
