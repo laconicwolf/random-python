@@ -14,8 +14,8 @@ def ftp_anon_login(ftp_obj):
 
     try:
         login_message = ftp_obj.login()
-    except error_perm:
-        return
+    except:
+        return login_message
 
     return login_message
 
@@ -47,6 +47,18 @@ def parse_to_csv(data):
     csv_file.close()        
 
 
+def list_directories(ftp_obj):
+    """ Performs a directory listing on an FTP object
+    """
+    try:
+        dirlist = ftp_obj.nlst()
+
+    except:
+        return "Empty directory listing"
+
+    return '\n'.join(dirlist)
+
+
 def main():
     data = []
     for addr in addrs:
@@ -57,7 +69,7 @@ def main():
             print(' [+]  {0}:{1} - Connection established'.format(addr, port))
             if args.verbose:
                 print('      {}'.format(banner))
-        except socket.timeout:
+        except:
             print(' [-]  {0}:{1} - Unable to connect'.format(addr, port))
             continue
 
@@ -72,7 +84,21 @@ def main():
         else:
             anonymous_login = ""
 
-        host_data.extend((addr, port, banner, anonymous_login))
+        if args.list_dir:
+            dirs = ''
+            if anonymous_login == "True":
+                try:
+                    dirs = list_directories(ftp)
+                    if args.verbose:
+                        print(' [+]  {0}:{1} - Directory Listing:'.format(addr, port))
+                        print(dirs)
+                except:
+                    dirs = ''
+
+        else:
+            dirs = ''
+
+        host_data.extend((addr, port, banner, anonymous_login, dirs))
         data.append(host_data)
 
     if args.csv:
@@ -83,15 +109,18 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
     parser.add_argument("-r", "--range", help="specify the network range (10.10.10.0/24)")
+    parser.add_argument("-i", "--ipaddress", help="specify IP address of the FTP server")
     parser.add_argument("-p", "--port", type=int, nargs="?", default='21', help="specify a port. Default is 21")
     parser.add_argument("-f", "--input_filename", help="specify a file containing the a list of hosts to generate web addresses from.")
     parser.add_argument("-a", "--anon_login", help="attempt to anonymously login to the FTP server", action="store_true")
+    parser.add_argument("-l", "--list_dir", help="lists directories (one deep) if login is allowed. Use recurse (-r) as well for full listing", action="store_true")
+    parser.add_argument("-rec", "--recurse", help="recursively list directories. Requires -l as well.", action="store_true")
     parser.add_argument("-csv", "--csv", nargs='?', const='ftp_results.csv', help="specify the name of a csv file to write to. If the file already exists it will be appended")
     args = parser.parse_args()
 
-    if not args.input_filename and not args.range:
+    if not args.input_filename and not args.range and not args.ipaddress:
         parser.print_help()
-        print("\n [-]  Please specify an input file (-i) to parse or an IP range (-r)\n")
+        print("\n [-]  Please specify an input file (-f) to parse or an IP range (-r)\n")
         exit()
 
     if args.input_filename:
@@ -111,6 +140,10 @@ if __name__ == '__main__':
             exit()
         for addr in addr_obj.hosts():
             addrs.append(addr)
+
+    if args.ipaddress:
+        addrs = [args.ipaddress]
+
 
     csv_name = args.csv
     port = args.port
