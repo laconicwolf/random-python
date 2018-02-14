@@ -4,7 +4,6 @@ import threading
 from queue import Queue
 import os
 import requests
-import urllib3
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import time
 import csv
