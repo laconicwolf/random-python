@@ -39,7 +39,6 @@ def authenticate(username, password):
         print('[-] Authentication failed! Verify your credentials and try again.')
         print('Exiting!')
         exit()
-
     return s, resp.text
 
 
