@@ -28,7 +28,7 @@ if not sys.version.startswith('3'):
 
 
 def authenticate(username, password):
-    """ Authenticates to the SANS advisory board archives and authenticates
+    """ Navigates to the SANS advisory board archives and authenticates
     """
     s = requests.Session()
     data = {'username': username,
