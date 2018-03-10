@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 try:
     import requests
 except ImportError:
@@ -73,11 +75,15 @@ def download_text_file(session, file, destination):
     file_url = url.strip('/') + '/' + file
     if args.verbose:
         print('[*] Downloading {}...'.format(file_url))
-    resp = session.get(file_url, stream=True)
-    with open(local_filename, 'wb') as f:
-        for chunk in resp.iter_content(chunk_size=1024): 
-            if chunk: # filter out keep-alive new chunks
-                f.write(chunk)
+    try:
+        resp = session.get(file_url, stream=True)
+        with open(local_filename, 'wb') as f:
+            for chunk in resp.iter_content(chunk_size=1024): 
+                if chunk: # filter out keep-alive new chunks
+                    f.write(chunk)
+    except Exception as e:
+        print('[-] An error occurred when downloading {}. Received the following error:\n\n    {}'.format(file, e))
+        exit()
     return local_filename
 
 
@@ -136,11 +142,17 @@ def main():
                 print('[*] Creating directory to store archived threads')
             make_directory(dirname)
         current_files = inventory_current_files(dirname)
+
+        # replace the most recent months file, since old file may have
+        # been incomplete
+        most_recent_month = web_file_list[0]
+        print("[*] Downloading {}".format(most_recent_month))
+        file_written = download_text_file(session, most_recent_month, dirname)
         
         # downloads files that are on the site but not in the directory
         for file in web_file_list:
             if file not in current_files:
-                print("Downloading {}".format(file))
+                print("[*] Downloading {}".format(file))
                 file_written = download_text_file(session, file, dirname)
                 if args.verbose:
                     print('[+] {} download to {}'.format(file, file_written))
