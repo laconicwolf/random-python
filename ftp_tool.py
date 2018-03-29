@@ -54,7 +54,7 @@ def list_directories(ftp_obj):
         dirlist = ftp_obj.nlst()
 
     except:
-        return "Empty directory listing"
+        return ""
 
     return '\n'.join(dirlist)
 
@@ -114,7 +114,6 @@ if __name__ == '__main__':
     parser.add_argument("-f", "--input_filename", help="specify a file containing the a list of hosts to generate web addresses from.")
     parser.add_argument("-a", "--anon_login", help="attempt to anonymously login to the FTP server", action="store_true")
     parser.add_argument("-l", "--list_dir", help="lists directories (one deep) if login is allowed. Use recurse (-r) as well for full listing", action="store_true")
-    parser.add_argument("-rec", "--recurse", help="recursively list directories. Requires -l as well.", action="store_true")
     parser.add_argument("-csv", "--csv", nargs='?', const='ftp_results.csv', help="specify the name of a csv file to write to. If the file already exists it will be appended")
     args = parser.parse_args()
 
