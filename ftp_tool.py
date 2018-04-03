@@ -1,4 +1,5 @@
 import ipaddress
+import itertools
 import argparse
 import ftplib
 import os
@@ -55,66 +56,19 @@ def list_directories(ftp_obj):
     return '\n'.join(dirlist)
 
 
-def range_maker(ip_range):
-    """ Returns a list of ip addresses when provided
-    a dash specified address range (10.1.1.0-30).
+def ip_range(input_string):
+    """ Accepts a '-' specified ip range and returns a list
+    of ip addresses. Adapted to Python3 from:
+    https://stackoverflow.com/questions/20525330/python-generate-a-list-of-ip-addresses-from-user-input
     """
+    octets = input_string.split('.')
+    chunks = [list(map(int, octet.split('-'))) for octet in octets]
+    ranges = [range(c[0], c[1] + 1) if len(list(c)) == 2 else c for c in chunks]
     addrs = []
-    index = ip_range.index('-')
-    start = ip_range[:index]
-    end = ip_range[index + 1:]
 
-    if len(start.split('.')) == 4:
-        oct_1 = start.split('.')[0]
-        oct_2 = start.split('.')[1]
-        oct_3 = start.split('.')[2]
-        s_range = start.split('.')[3]
-
-    if len(start.split('.')) == 3:
-        oct_1 = start.split('.')[0]
-        oct_2 = start.split('.')[1]
-        s_range = start.split('.')[2]
-
-    if len(start.split('.')) == 2:
-        oct_1 = start.split('.')[0]
-        s_range = start.split('.')[1]
-
-    if len(start.split('.')) == 1:
-        s_range = start.split('.')[0]
-
-    if len(end.split('.')) == 4:
-        e_range = end.split('.')[0]
-        oct_2 = end.split('.')[1]
-        oct_3 = end.split('.')[2]
-        oct_4 = end.split('.')[3]
-        range_list = range(int(s_range), int(e_range) + 1)
-        for i in range_list:
-            addrs.append('{}.{}.{}.{}'.format(str(i), oct_2, oct_3, oct_4))
-        return addrs
-
-    if len(end.split('.')) == 3:
-        e_range = end.split('.')[0]
-        oct_3 = end.split('.')[1]
-        oct_4 = end.split('.')[2]
-        range_list = range(int(s_range), int(e_range) + 1)
-        for i in range_list:
-            addrs.append('{}.{}.{}.{}'.format(oct_1, str(i), oct_3, oct_4))
-        return addrs
-
-    if len(end.split('.')) == 2:
-        e_range = end.split('.')[0]
-        oct_4 = end.split('.')[1]
-        range_list = range(int(s_range), int(e_range) + 1)
-        for i in range_list:
-            addrs.append('{}.{}.{}.{}'.format(oct_1, oct_2, str(i), oct_4))
-        return addrs
-
-    if len(end.split('.')) == 1:
-        e_range = end.split('.')[0]
-        range_list = range(int(s_range), int(e_range) + 1)
-        for i in range_list:
-            addrs.append('{}.{}.{}.{}'.format(oct_1, oct_2, oct_3, str(i)))
-        return addrs
+    for address in itertools.product(*ranges):
+        addrs.append('.'.join(map(str, address)))
+    return addrs
 
 
 def main():
@@ -192,10 +146,7 @@ if __name__ == '__main__':
             if '/' in args.range:
                 print("\n[-] Unable to accept a CIDR and '-' specified range.\n")
                 exit()
-            if len(args.range.split('-')) > 2:
-                print("\n[-] Unable to parse ranges in multiple octets. Please only use a '-' in one octet. Example -r 10.1.1.50-65\n")
-                exit()
-            addrs = range_maker(args.range)
+            addrs = ip_range(args.range)
         else:
             try:
                 addr_obj = ipaddress.ip_network(args.range)
