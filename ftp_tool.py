@@ -64,10 +64,8 @@ def ip_range(input_string):
     octets = input_string.split('.')
     chunks = [list(map(int, octet.split('-'))) for octet in octets]
     ranges = [range(c[0], c[1] + 1) if len(list(c)) == 2 else c for c in chunks]
-    addrs = []
-
-    for address in itertools.product(*ranges):
-        addrs.append('.'.join(map(str, address)))
+    addrs = ['.'.join(list(map(str, address))) for address in itertools.product(*ranges)]
+    
     return addrs
 
 
