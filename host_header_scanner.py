@@ -151,6 +151,12 @@ def normalize_urls(urls):
                     url_list.append('http://' + url)
                     url_list.append('https://' + url)
                     continue
+            else:
+                    url = url.strip()
+                    url = url.strip('/') + '/'
+                    url_list.append('http://' + url)
+                    url_list.append('https://' + url)
+                    continue
         url = url.strip()
         url = url.strip('/') + '/'
         url_list.append(url)
