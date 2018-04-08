@@ -10,6 +10,7 @@ import re
 import argparse
 import os
 import random
+import string
 import threading
 from queue import Queue
 import csv
@@ -23,7 +24,7 @@ if not version.startswith('3'):
 
 
 __author__ = 'Jake Miller (@LaconicWolf)'
-__date__ = '20180406'
+__date__ = '20180408'
 __version__ = '0.01'
 __description__ = '''Multithreaded website scanner that compares responses
                   using different host headers. Accepts a text file containing
@@ -57,7 +58,9 @@ def get_random_useragent():
 def get_host_headers():
     ''' Returns host headers values.
     '''
-    headers = ['127.0.0.1', 'localhost', '"><img src=0 />']
+    letters = string.ascii_lowercase
+    random_string = ''.join(random.choice(letters) for i in range(10))
+    headers = [random_string, '127.0.0.1', 'localhost', '"><img src=0 />']
     return headers
 
 
