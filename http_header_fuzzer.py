@@ -1,5 +1,11 @@
-# Not finished...
-
+from sys import version
+try:
+    from queue import Queue
+except ImportError as error:
+    missing_module = str(error).split(' ')[-1]
+    print('\nMissing module: {}'.format(missing_module))
+    if not version.startswith('3'):
+        print('\nThis script has only been tested with Python3. If using another version and encounter an error, try using Python3\n')
 try:
     import requests
     from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -14,9 +20,7 @@ import os
 import random
 import string
 import threading
-from queue import Queue
 import csv
-from sys import version
 from time import sleep
 
 
@@ -56,45 +60,65 @@ def get_random_useragent():
 
 
 def get_random_string(length):
+    ''' Returns a random string consisting of lowercase letters.
+    '''
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for i in range(length))
 
 
-def get_host_headers():
+def get_host_header_values():
     ''' Returns host headers values.
     '''
     random_string = get_random_string(10)
-    headers = [random_string, '127.0.0.1', 'localhost', '"><img src=0 />']
-    return headers
+    values = [random_string, '127.0.0.1', 'localhost', '"><img src=0 />']
+    return values
 
 
-def get_useragent():
+def get_useragent_header_values():
     random_string = get_random_string(30)
-    user_agents = [random_string]
+    values = [random_string]
+    return values
 
 
-def make_request(url, header=None):
+def get_forwarded_header_values():
+    random_string = get_random_string(10)
+    values = ['for=' + random_string, 'for=127.0.0.1', 'for=localhost', '"for=><img src=0 />']
+    return values
+
+
+def get_host_header_values():
+    random_string = get_random_string(10)
+    values = [random_string, '127.0.0.1', 'localhost', '"><img src=0 />']
+    return values
+
+
+def get_referer_header_values():
+    random_string = get_random_string(10)
+    values = [random_string, '127.0.0.1', 'localhost', '"><img src=0 />']
+    return values
+
+
+def make_request(url, header=None, header_value=None):
     ''' Builds a requests object, makes a request, and returns 
     a response object.
     '''
     s = requests.Session()
     
-    if args.user_agent_header:
-        if header = "User-Agent":
-            user_agent = user_agent    
-    else:
-        user_agent = get_random_useragent()
-    s.headers['User-Agent'] = user_agent
-
-    if args.host_header:
-        if host_header:
-            s.headers['Host'] = host_header
+    if not header == "User-Agent":
+        s.headers['User-Agent'] = get_random_useragent()
+        
+    s.headers[header] = header_value
     
+    if args.credentials:
+        cred_type = credentials.split(':')[0]
+        cred_value = credentials.split(':')[1].lstrip()
+        s.headers[cred_type] = cred_value
+
     if args.proxy:
         s.proxies['http'] = args.proxy
         s.proxies['https'] = args.proxy
     
-    resp = s.get(url, verify=False)
+    resp = s.get(url, verify=False, timeout=2)
     return resp
 
 
@@ -104,10 +128,10 @@ def check_for_reflection(url, response, test_header, input_string):
     line where the reflection occurred.
     '''
     response_list = response.text.splitlines()
-    relection = [line for line in response_list if input_string in line]
+    reflection = [line for line in response_list if input_string in line]
     msg = ''  
     if reflection:
-        msg += "\n    URL: {}".format(url)
+        msg += "\n[+] Reflected content for URL: {}".format(url)
         msg += "\n    {}: {}".format(test_header, input_string)
         msg += "\n    Response code: {}".format(response.status_code)
         if len(reflection) > 1:
@@ -124,7 +148,7 @@ def parse_to_csv(data):
     if not os.path.isfile(csv_name):
         csv_file = open(csv_name, 'w', newline='')
         csv_writer = csv.writer(csv_file)
-        top_row = ['URL', 'Host header', 'Status code', 'Header line text', 'Notes']
+        top_row = ['URL', 'Header', 'Value', 'Status code', 'Header line text', 'Notes']
         csv_writer.writerow(top_row)
         print('\n[+] The file {} does not exist. New file created!\n'.format(csv_name))
     else:
@@ -137,8 +161,7 @@ def parse_to_csv(data):
         print('\n[+]  {} exists. Appending to file!\n'.format(csv_name))
     
     for line in data:
-        for item in line:
-            csv_writer.writerow(item)
+        csv_writer.writerow(line)
         
     csv_file.close()
 
@@ -183,6 +206,24 @@ def normalize_urls(urls):
     return url_list
 
 
+def get_header_values(header):
+    ''' Accepts the name of an HTTP header and returns the contents of a 
+    function containing a list of header values associated with the header
+    name.
+    '''
+    if header == 'User-Agent':
+        return get_useragent_header_values()
+    if header == 'Host':
+        return get_host_header_values()
+    if header == 'Forwarded':
+        return get_forwarded_header_values()
+    if header == 'From':
+        return get_host_header_values()
+    if header == 'Referer':
+        return get_referer_header_values()
+
+
+
 def scanner_controller(url):
     ''' Controls most of the logic for the script. Accepts a URL and calls 
     various functions to make requests and prints output to the terminal.
@@ -191,27 +232,30 @@ def scanner_controller(url):
     '''
     global data
     for header in headers_to_fuzz:
-        url_data = []
-        request_data = []
+        header_values = get_header_values(header)
         if args.verbose:
             with print_lock:
-                print("[*] Making HTTP request to {}".format(url))
-        try:
-            resp = make_request(url, header, value)
-        except Exception as e:
-            if args.verbose:
-                print('[-] Unable to connect to site: {}'.format(url))
-                print('[*] {}'.format(e))
-            continue
-        message, header_line = check_for_reflection(url, resp, header, resp.headers[header])
-        if header_line:
-            if len(header_line) > 1:
-                header_line = '\n'.join(header_line)
-            else:
-                header_line = header_line[0]
-        request_data.extend((url, header, resp.status_code, header_line))
-        url_data.append(request_data)
-    data.append(url_data)
+                print("[*] Fuzzing {} header at {}".format(header, url))
+        for header_value in header_values:
+            request_data = []
+            try:
+                resp = make_request(url, header, header_value)
+            except Exception as e:
+                if args.verbose:
+                    print('[-] Unable to connect to site: {}'.format(url))
+                    print('[*] {}'.format(e))
+                continue
+            message, header_line = check_for_reflection(url, resp, header, header_value)
+            if message:
+                with print_lock:
+                    print(message)
+            if header_line:
+                if len(header_line) > 1:
+                    header_line = '\n'.join(header_line)
+                else:
+                    header_line = header_line[0]
+            request_data.extend((url, header, header_value, resp.status_code, header_line))
+            data.append(request_data)
 
 
 def process_queue():
@@ -245,14 +289,17 @@ def main():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose", help="Increase output verbosity", action="store_true")
-    parser.add_argument("-pr", "--proxy", help="Specify a proxy to use (-p 127.0.0.1:8080)")
-    parser.add_argument("-csv", "--csv", nargs='?', const='results.csv', help="Specify the name of a csv file to write to. If the file already exists it will be appended")
+    parser.add_argument("-a", "--all", help="Run all tests", action="store_true")
     parser.add_argument("-uf", "--url_file", help="Specify a file containing urls formatted http(s)://addr:port.")
-    parser.add_argument("-hf", "--host_header_file", help="Specify a file containing host header values to use.")
     parser.add_argument("-hh", "--host_header", help="Fuzz the host header.", action="store_true")
     parser.add_argument("-uah", "--user_agent_header", help="Fuzz the user agent header.", action="store_true")
-    parser.add_argument("-uahf", "--user_agent_header_file", help="Specify a file containing user agents to use.")
+    parser.add_argument("-f", "--forwarded_header", help="Fuzz the Forwarded header", action="store_true")
+    parser.add_argument("-fr", "--from_header", help="Fuzz the from header", action="store_true")
+    parser.add_argument("-r", "--referer_header", help="Fuzz the Referer header", action="store_true")
+    parser.add_argument("-pr", "--proxy", help="Specify a proxy to use (-p 127.0.0.1:8080)")
+    parser.add_argument("-c", "--credentials", help="Specify credentials to submit. Must be quoted. Example: -c 'Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ=='. Example: -c 'Cookie: SESS=Aid8eUje8&3jdolapf'")
     parser.add_argument("-t", "--threads", nargs="?", type=int, default=1, help="Specify number of threads (default=1)")
+    parser.add_argument("-csv", "--csv", nargs='?', const='http_header_fuzzing_results.csv', help="Specify the name of a csv file to write to. If the file already exists it will be appended")
     args = parser.parse_args()
 
     if not args.url_file:
@@ -267,36 +314,27 @@ if __name__ == '__main__':
             exit()
         urls = open(urlfile).read().splitlines()
 
-    if not args.host_header and not args.user_agent_header:
+    if not args.all and not args.host_header and not args.user_agent_header and not args.forwarded_header and not args.from_header and not args.referer_header:
         parser.print_help()
-        print("\n [-]  Please specify a header or headers to test.\n")
+        print("\n [-]  Please specify a header or headers to test. Use -a (--all) to run all tests.\n")
         exit()
 
     headers_to_fuzz = []
 
-    if args.host_header:
-        headers_to_fuzz.append('host')
+    if args.all or args.host_header:
+        headers_to_fuzz.append('Host')
 
-    if args.host_header_file:
-        host_header_file = args.host_header_file
-        if not os.path.exists(urlfile):
-            print("\n [-]  The file cannot be found or you do not have permission to open the file. Please check the path and try again\n")
-            exit()
-        host_headers = open(host_header_file).read().splitlines()
-    else:
-        host_headers = get_host_headers()
-
-    if args.user_agent_header:
+    if args.all or args.user_agent_header:
         headers_to_fuzz.append('User-Agent')
 
-    if args.user_agent_header_file:
-        user_agent_header_file = args.user_agent_header_file
-        if not os.path.exists(urlfile):
-            print("\n [-]  The file cannot be found or you do not have permission to open the file. Please check the path and try again\n")
-            exit()
-        user_agent_headers = open(user_agent_header_file).read().splitlines()
-    else:
-        user_agent_headers = get_useragent()
+    if args.all or args.forwarded_header:
+        headers_to_fuzz.append('Forwarded')
+
+    if args.all or args.from_header:
+        headers_to_fuzz.append('From')
+
+    if args.all or args.referer_header:
+        headers_to_fuzz.append('Referer')
 
     csv_name = args.csv
 
@@ -304,9 +342,10 @@ if __name__ == '__main__':
     requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
     print_lock = threading.Lock()
-
     url_queue = Queue()
 
+    # Global variable where all data will be stored
+    # The scanner_controller function appends data here
     data = []
 
     main()
