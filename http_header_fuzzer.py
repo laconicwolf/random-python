@@ -75,24 +75,32 @@ def get_host_header_values():
 
 
 def get_useragent_header_values():
+    ''' Returns header values.
+    '''
     random_string = get_random_string(30)
     values = [random_string]
     return values
 
 
 def get_forwarded_header_values():
+    ''' Returns header values.
+    '''
     random_string = get_random_string(10)
     values = ['for=' + random_string, 'for=127.0.0.1', 'for=localhost', '"for=><img src=0 />']
     return values
 
 
 def get_host_header_values():
+    ''' Returns header values.
+    '''
     random_string = get_random_string(10)
     values = [random_string, '127.0.0.1', 'localhost', '"><img src=0 />']
     return values
 
 
 def get_referer_header_values():
+    ''' Returns header values.
+    '''
     random_string = get_random_string(10)
     values = [random_string, '127.0.0.1', 'localhost', '"><img src=0 />']
     return values
