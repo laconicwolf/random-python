@@ -11,7 +11,6 @@ import base64
 import urllib.parse
 import argparse
 import os
-import sys
 
 
 def decode_url_encoding(input_string):
