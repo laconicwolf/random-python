@@ -17,11 +17,11 @@ import sys
 def decode_url_encoding(input_string):
     """Returns a URL decoded byte-string
     """
-    if type(input_string) != str:
+    if type(input_string) == bytes:
         input_string = input_string.decode()
     if '%' not in input_string:
         return input_string.encode()
-    return urllib.parse.unquote(input_string.encode())
+    return urllib.parse.unquote(input_string).encode()
 
 
 def get_integer_list(input_bytes):
@@ -38,17 +38,30 @@ def main():
         data = base64.b64decode(data)
     data_list = get_integer_list(data)
     integer_list = [i for i in range(256)]
-    plt.hist(data_list, color='g')
-    #plt.scatter(data_list, color='g')
-    plt.xticks(range(0, 256, 15))
-    plt.show()
-    print(data)
+    if args.plot_histogram:
+        plt.hist(data_list, color='g')
+        plt.title('Byte Histogram')
+        plt.ylabel('Occurence')
+        plt.xlabel('Byte Values')
+        plt.xticks(range(0, 256, 10))
+        plt.show()
+    if args.plot_scatter:
+        positions = [i for i in range(len(data_list))]
+        plt.scatter(data_list, positions, edgecolors='r')
+        plt.show()
+    print(data[:50])
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose",
                         help="Increase output verbosity", 
+                        action="store_true")
+    parser.add_argument("-ph", "--plot_histogram",
+                        help="Plot at histogram.", 
+                        action="store_true")
+    parser.add_argument("-ps", "--plot_scatter",
+                        help="Plot as scatter.", 
                         action="store_true")
     parser.add_argument("-d", "--data",
                         help="Specify the data as a string.")
@@ -64,8 +77,7 @@ if __name__ == '__main__':
 
     if not args.data and not args.file:
         parser.print_help()
-        print('\n[-] Please specify the encrypted data (-d data) or specify\
-                a file containing the data (-f /path/to/data) ')
+        print('\n[-] Please specify the encrypted data (-d data) or specify a file containing the data (-f /path/to/data) ')
         exit()
     if args.data and args.file:
         parser.print_help()
@@ -75,8 +87,7 @@ if __name__ == '__main__':
         input_data = args.data
     if args.file:
         if not os.path.exists(args.file):
-            print("\n[-] The file cannot be found or you do not have permission to open the file.\
-                    Please check the path and try again\n")
+            print("\n[-] The file cannot be found or you do not have permission to open the file. Please check the path and try again\n")
             exit()
         else:
             input_data = open(args.file, 'rb').read()
