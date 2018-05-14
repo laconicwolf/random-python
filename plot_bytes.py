@@ -3,7 +3,7 @@
 __author__ = 'Jake Miller (@LaconicWolf)'
 __date__ = '20180514'
 __version__ = '0.01'
-__description__ = """A program to plot byte values given set of data"""
+__description__ = """A program to plot byte values for a given set of data"""
 
 
 import matplotlib.pyplot as plt 
