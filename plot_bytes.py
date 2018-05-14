@@ -25,6 +25,8 @@ def decode_url_encoding(input_string):
 
 
 def get_integer_list(input_bytes):
+    """Returns a list of byte integers.
+    """
     return [byte for byte in input_bytes]
 
 
