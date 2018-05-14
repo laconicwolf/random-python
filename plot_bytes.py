@@ -48,6 +48,10 @@ def main():
     if args.plot_scatter:
         positions = [i for i in range(len(data_list))]
         plt.scatter(data_list, positions, edgecolors='r')
+        plt.title('Byte Scatter Plot')
+        plt.ylabel('Occurence')
+        plt.xlabel('Byte Values')
+        plt.xticks(range(0, 256, 10))
         plt.show()
     print(data[:50])
 
