@@ -51,9 +51,9 @@ if __name__ == '__main__':
                         help="Increase output verbosity", 
                         action="store_true")
     parser.add_argument("-d", "--data",
-                        help="Specify the encrypted data as a string.")
+                        help="Specify the data as a string.")
     parser.add_argument("-f", "--file",
-                        help="Specify a file containing the encrypted data.")
+                        help="Specify a file containing the data.")
     parser.add_argument("-u", "--url_decode",
                         help="Decode the URL encoded characters", 
                         action="store_true")
