@@ -102,7 +102,7 @@ if __name__ == '__main__':
     
     for address in addresses:    
         # additional validation to dump any octet larger than 255
-        octets = address.split('.')
+        octets = str(address).split('.')
         invalid_addr = [octet for octet in octets if int(octet) > 255]
         if invalid_addr:
             continue 
