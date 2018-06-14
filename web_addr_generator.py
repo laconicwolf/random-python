@@ -52,7 +52,7 @@ def main():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-r", "--range", help="specify the network range (10.10.10.0/24)")
-    parser.add_argument("-i", "--input_filename", help="specify a file containing the a list of hosts to generate web addresses from.")
+    parser.add_argument("-f", "--filename", help="specify a file containing the a list of hosts to generate web addresses from.")
     parser.add_argument("-p", "--port", help="specify a file containing the a list of hosts to generate web addresses from.")
     parser.add_argument("-pf", "--port_filename", help="specify a file containing the a list of ports used in place of the default listing.")
     parser.add_argument("-pr", "--protocol", help="specify a protocol to prefix the host. Example -pr https.")
