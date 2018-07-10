@@ -70,6 +70,9 @@ def main():
         domain_name = item[0]
         ip_address = item[1]
         if domain_name is not None:
+            if args.domain:
+                if args.domain not in domain_name:
+                    continue 
             print('{:35}{:35}'.format(domain_name.strip('.'), ip_address))
 
 
