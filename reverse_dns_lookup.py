@@ -13,15 +13,6 @@ import re
 import argparse
 if sys.version.startswith('3'):
     import ipaddress
-
-try:
-    import requests
-    from requests.packages.urllib3.exceptions import InsecureRequestWarning
-except ImportError as error:
-    missing_module = str(error).split(' ')[-1]
-    print('[*] Try running "pip install requests", or do an Internet search for installation instructions.')
-    exit()
-
 try:
     import dns.resolver, dns.reversename, dns.query, dns.zone
 except ImportError as error:
