@@ -95,7 +95,7 @@ def cidr_ip_range(input_string):
     within the CIDR range.
     """
     addr_obj = ipaddress.ip_network(input_string)
-    addrs = [addr for addr in addr_obj.hosts()]
+    addrs = [str(addr) for addr in addr_obj.hosts()]
     return addrs
 
 
@@ -217,7 +217,6 @@ if __name__ == '__main__':
                 print('\n[-] Invalid IP range detected. Please try again.\n')
                 exit()
             ip_addrs = ip_range(args.range)
-
             # Additional validation to dump any octet larger than 255
             addrs = []
             for addr in ip_addrs:
@@ -244,6 +243,7 @@ if __name__ == '__main__':
                 print('\n[-] Invalid CIDR range detected. Please try again.')
                 print('[-] {}\n'.format(error))
                 exit()
+
     if args.ipaddress:
         if '/' in args.ipaddress:
             print('\n[-] Invalid character ('/') detected in hostname/IP address.\n')
