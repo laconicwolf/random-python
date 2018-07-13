@@ -7,16 +7,20 @@ __version__ = '0.02'
 __description__ = 'A program to discover the FTP service, attempt anonymous login, and list directories.'
 
 
+import sys
+if not sys.version.startswith('3'):
+    print('\n[-] This script requires Python3. Exiting.\n')
+    exit()
 import itertools
 import argparse
 import ftplib
 import os
 import csv
 import pprint
-import sys
 import re
-if sys.version.startswith('3'):
-    import ipaddress
+import ipaddress
+import threading
+from queue import Queue
 
 
 def ftp_anon_login(ftp_obj):
@@ -34,7 +38,7 @@ def parse_to_csv(data):
     if not os.path.isfile(csv_name):
         csv_file = open(csv_name, 'w', newline='')
         csv_writer = csv.writer(csv_file)
-        top_row = ['URL', 'Header', 'Value', 'Status code', 'Header line text', 'Notes']
+        top_row = ['Host', 'Port', 'Banner', 'Anonymous Login', 'Directory Listing']
         csv_writer.writerow(top_row)
         print('\n[+] The file {} does not exist. New file created!\n'.format(csv_name))
     else:
@@ -99,48 +103,73 @@ def cidr_ip_range(input_string):
     return addrs
 
 
-def main():
-    """Attempts FTP connections, anonymous logins, and list directories."""
+def process_queue():
+    """Processes the host queue and calls the discover_ftp function"""
+    while True:
+        current_host = host_queue.get()
+        discover_ftp(current_host)
+        host_queue.task_done()
 
-    # Initialize variable to store all the data for each address.
-    data = []
+
+def discover_ftp(addr):
+    """Attempts FTP connections, anonymous logins, and list directories."""
+    global data
 
     # Attempts an FTP connection to each address.
-    for addr in addrs:
-        host_data = []
-        ftp = ftplib.FTP()
-        try:
-            banner = ftp.connect(addr, port, timeout=5)
+    host_data = []
+    ftp = ftplib.FTP()
+    try:
+        banner = ftp.connect(addr, port, timeout=5)
+        with lock:
             print('[+] {0}:{1} - Connection established'.format(addr, port))
-            if args.verbose:
+        if args.verbose:
+            with lock:
                 print('      {}'.format(banner))
-        except ftplib.all_errors as e:
-            if args.verbose:
+    except ftplib.all_errors as e:
+        if args.verbose:
+            with lock:
                 print('[-] {0}:{1} - Unable to connect'.format(addr, port))
-            continue
+        return
 
-        # Attempts anonymous login.
-        anonymous_login = False
-        if args.anon_login:
-            login_message = ftp_anon_login(ftp)
-            if login_message != '':
+    # Attempts anonymous login.
+    anonymous_login = False
+    if args.anon_login:
+        login_message = ftp_anon_login(ftp)
+        if login_message != '':
+            with lock:
                 print('[+] {0}:{1} - Anonyomous login established'.format(addr, port))
-                anonymous_login = True
-            else:
-                if args.verbose:
+            anonymous_login = True
+        else:
+            if args.verbose:
+                with lock:
                     print('[-] {0}:{1} - Unable to log in. Permission Error'.format(addr, port))
 
-        # Performs directory listing.
+    # Performs directory listing.
+    all_dirs = ''
+    if args.list_dir:
         all_dirs = ''
-        if args.list_dir:
-            all_dirs = ''
-            if anonymous_login is True:
-                dirs = list_directories(ftp)
-                print('[+] {0}:{1} - Directory Listing:'.format(addr, port))
-                all_dirs = pprint.pformat(dirs)
-                print(all_dirs)
-        host_data.extend((addr, port, banner, anonymous_login, all_dirs))
-        data.append(host_data)
+        if anonymous_login is True:
+            dirs = list_directories(ftp)
+            all_dirs = pprint.pformat(dirs)
+            if dirs:
+                with lock:
+                    print('[+] {0}:{1} - Directory Listing Received'.format(addr, port))
+            if args.verbose:
+                with lock:
+                    print(all_dirs)
+    host_data.extend((addr, port, banner, anonymous_login, all_dirs))
+    data.append(host_data)
+
+
+def main():
+    """Starts multi-threading to enumerate FTP and sends the data to the CSV parsing function."""
+    for i in range(args.threads):
+        t = threading.Thread(target=process_queue)
+        t.daemon = True
+        t.start()
+    for addr in addrs:
+        host_queue.put(addr)
+    host_queue.join()
     if args.csv:
         parse_to_csv(data)
 
@@ -171,8 +200,13 @@ if __name__ == '__main__':
                         help="Lists directories (one deep) if login is allowed. Specify a number to list further directories.")
     parser.add_argument("-csv", "--csv",
                         nargs='?',
-                        const='ftp_results.csv',
-                        help="specify the name of a csv file to write to. If the file already exists it will be appended")
+                        default='ftp_results.csv',
+                        help="Specify the name of a csv file to write to. If the file already exists it will be appended")
+    parser.add_argument("-t", "--threads",
+                        nargs="?",
+                        type=int,
+                        default=5,
+                        help="Specify number of threads (default=5)")
     args = parser.parse_args()
 
     if not args.input_filename and not args.range and not args.ipaddress:
@@ -256,16 +290,23 @@ if __name__ == '__main__':
         csv_name = args.csv
 
         # Check to see if the file is open. Better to check now then having an error later.
-        try:
-            csv_file = open(csv_name, 'a', newline='')
-            csv_file.close()
-        except PermissionError:
-            print("\n[-] Permission denied to open the file {}. Check if the file is open and try again.".format(
-                csv_name))
-            exit()
+        if os.path.exists(csv_name):
+            try:
+                csv_file = open(csv_name, 'a', newline='')
+                csv_file.close()
+            except PermissionError:
+                print("\n[-] Permission denied to open the file {}. Check if the file is open and try again.".format(
+                    csv_name))
+                exit()
 
     port = args.port
     max_depth = args.list_dir
+    lock = threading.Lock()
+    host_queue = Queue()
+
+    # Global variable where all data will be stored
+    # The discover_ftp function appends data here
+    data = []
 
     print("\n[+]  Loaded {} FTP server addresses to test\n".format(str(len(addrs))))
     main()
