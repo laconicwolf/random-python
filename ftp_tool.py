@@ -13,6 +13,7 @@ import argparse
 import ftplib
 import os
 import csv
+import pprint
 
 
 def ftp_anon_login(ftp_obj):
@@ -30,33 +31,29 @@ def parse_to_csv(data):
     if not os.path.isfile(csv_name):
         csv_file = open(csv_name, 'w', newline='')
         csv_writer = csv.writer(csv_file)
-        top_row = ['IP Addr', 'Port', 'Banner', 'Anonyomous Login', 'Directory Listing', 'Credentials', 'Notes']
+        top_row = ['URL', 'Header', 'Value', 'Status code', 'Header line text', 'Notes']
         csv_writer.writerow(top_row)
         print('\n[+] The file {} does not exist. New file created!\n'.format(csv_name))
     else:
         try:
             csv_file = open(csv_name, 'a', newline='')
         except PermissionError:
-            print("\n[-] Permission denied to open the file {}. Check if the file is open and try again.".format(
-                csv_name))
-            print("Printing to \n")
-            for item in data:
-                print(item)
+            print("\n[-] Permission denied to open the file {}. Check if the file is open and try again.\n".format(csv_name))
             exit()
         csv_writer = csv.writer(csv_file)
-        print('\n[+] {} exists. Appending to file!\n'.format(csv_name))
-    for item in data:
-        csv_writer.writerow(item)
+        print('\n[+]  {} exists. Appending to file!\n'.format(csv_name))
+    for line in data:
+        csv_writer.writerow(line)
     csv_file.close()
 
 
 def list_directories(ftp_obj, depth=1):
     """Return a recursive listing of an ftp server contents (starting from
     the current directory). Listing is returned as a recursive dictionary, where each key
-    contains a contents of the subdirectory or None if it corresponds to a file.
+    contains a contents of the subdirectory or None if it corresponds to a file. Adapted from:
     https://stackoverflow.com/questions/1854572/traversing-ftp-listing
     """
-    if depth > max_depth:
+    if depth >= max_depth:
         return ['depth > {}'.format(max_depth)]
     entries = {}
     for entry in (path for path in ftp_obj.nlst() if path not in ('.', '..')):
@@ -110,18 +107,14 @@ def main():
         else:
             anonymous_login = False
         if args.list_dir:
-            all_dirs = []
+            all_dirs = ''
             if anonymous_login is True:
                 dirs = list_directories(ftp)
                 print('[+] {0}:{1} - Directory Listing:'.format(addr, port))
-                for key in dirs:
-                    for value in dirs[key]:
-                        full_path = ('/{}/{}/'.format(key, value))
-                        print(full_path)
-                        all_dirs.append(full_path)
+                all_dirs = pprint.pformat(dirs)
+                print(all_dirs)
         else:
-            all_dirs = []
-        all_dirs = '\n'.join(all_dirs)
+            all_dirs = ''
         host_data.extend((addr, port, banner, anonymous_login, all_dirs))
         data.append(host_data)
     if args.csv:
@@ -150,7 +143,7 @@ if __name__ == '__main__':
     parser.add_argument("-l", "--list_dir",
                         type=int,
                         nargs='?',
-                        default="1",
+                        const="1",
                         help="Lists directories (one deep) if login is allowed. Specify a number to list further directories."
                         )
     parser.add_argument("-csv", "--csv",
@@ -186,8 +179,18 @@ if __name__ == '__main__':
             addrs = [addr for addr in addr_obj.hosts()]
     if args.ipaddress:
         addrs = [args.ipaddress]
+    if args.csv:
+        csv_name = args.csv
 
-    csv_name = args.csv
+        # Check to see if the file is open. Better to check now then having an error later.
+        try:
+            csv_file = open(csv_name, 'a', newline='')
+            csv_file.close()
+        except PermissionError:
+            print("\n[-] Permission denied to open the file {}. Check if the file is open and try again.".format(
+                csv_name))
+            exit()
+    
     port = args.port
     max_depth = args.list_dir
 
