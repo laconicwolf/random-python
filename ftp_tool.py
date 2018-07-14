@@ -64,19 +64,25 @@ def list_directories(ftp_obj, depth=1):
     if depth > max_depth:
         return ['depth > {}'.format(max_depth)]
     entries = {}
-    for entry in (path for path in ftp_obj.nlst() if path not in ('.', '..')):
-        try:
-            ftp_obj.cwd(entry)
-            entries[entry] = list_directories(ftp_obj, depth + 1)
-            ftp_obj.cwd('..')
-        except ftplib.error_perm:
-            entries[entry] = None
-        except Exception as e:
-            print('An error occurred: {}'.format(e))
-            continue
+    try:
+        for entry in (path for path in ftp_obj.nlst() if path not in ('.', '..')):
+            try:
+                ftp_obj.cwd(entry)
+                entries[entry] = list_directories(ftp_obj, depth + 1)
+                ftp_obj.cwd('..')
+            except ftplib.error_perm:
+                entries[entry] = None
+            except Exception as e:
+                print('An error occurred: {}'.format(e))
+                return
+    except ftplib.error_perm:
+        return
     if entries is {}:
-        ftp_obj.cwd('/')
-        directories = ftp_obj.nlst()
+        try:
+            ftp_obj.cwd('/')
+            directories = ftp_obj.nlst()
+        except ftplib.error_perm:
+            return
         for item in directories:
             entries[item] = ''
     return entries
@@ -201,6 +207,7 @@ if __name__ == '__main__':
     parser.add_argument("-csv", "--csv",
                         nargs='?',
                         default='ftp_results.csv',
+                        const='ftp_results.csv',
                         help="Specify the name of a csv file to write to. If the file already exists it will be appended")
     parser.add_argument("-t", "--threads",
                         nargs="?",
