@@ -66,22 +66,22 @@ if __name__ == '__main__':
                         help="specify a protocol to prefix the host. Example -pr https.")
     args = parser.parse_args()
 
-    if not args.input_filename and not args.range:
+    if not args.filename and not args.range:
         parser.print_help()
         print("\n[-] Please specify an input file (-i) to parse or an IP range (-r)\n")
         exit()
         
-    if args.input_filename and args.range:
+    if args.filename and args.range:
         parser.print_help()
         print("\n[-] Please specify an input file (-i) to parse or an IP range (-r)...Not both\n")
         exit()
 
-    if args.input_filename:
-        if not os.path.exists(args.input_filename):
+    if args.filename:
+        if not os.path.exists(args.filename):
             parser.print_help()
             print("\n[-] The file cannot be found or you do not have permission to open the file. Please check the path and try again\n")
             exit()
-        addrs = open(args.input_filename).read().splitlines()
+        addrs = open(args.filename).read().splitlines()
         
     if args.port_filename:
         if args.port:
