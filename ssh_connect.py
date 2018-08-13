@@ -28,6 +28,7 @@ def ssh_connect(hostname, username, password, port=22):
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
         ssh_client.connect(hostname=hostname,
+                           port=port,
                            username=username,
                            password=password)
         with lock:
