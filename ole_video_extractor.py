@@ -33,12 +33,10 @@ def extract_archive(filename, dest_dir):
 
 
 def remove_ole(contents):
-
-                    # 00  00  00  18  f   t   y   p 
-    start_bytes = b'\x00\x00\x00\x18\x66\x74\x79\x70'
+                    #f   t   y   p 
+    start_bytes = b'\x66\x74\x79\x70'
     index = contents.find(start_bytes)
-    new_contents = contents[index:]
-
+    new_contents = b'\x00\x00\x00\x20' + contents[index:]
     return new_contents
 
 
