@@ -5,7 +5,6 @@ __date__ = "20181126"
 __version__ = "0.01"
 __description__ = """SSHs into a Kali instance and starts Responder.py."""
 
-
 import os
 import sys
 import argparse
