@@ -28,7 +28,7 @@ from System.DirectoryServices import AccountManagement
 from System.Environment import UserDomainName
 
 def validateCredentials(user, password, domain):
-    """Attempts to authenticate usine a specified username,
+    """Attempts to authenticate using a specified username,
     password, and domain.
     """
     try:
