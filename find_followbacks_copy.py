@@ -46,26 +46,16 @@ def get_user_tweets(screen_name: str, n_tweets=3) -> list:
     tweet_data = api.user_timeline(screen_name=screen_name, count=n_tweets)
     return [tweet.text for tweet in tweet_data]
 
-def check_follow_status(screen_name_to_check: str, screen_name_to_check_against: str) -> tuple:
-    """Given two Twitter usernames, returns a friendship object 
-    the following/follwer status of the relationship. 
-    """
-    return api.show_friendship(
-        source_screen_name=screen_name_to_check, 
-        target_screen_name=screen_name_to_check_against
-    )
-
 def follow_user(screen_name: str) -> None:
     """Given a Twitter screen name, will follow that user
     and enable follow notifications.
     """
     api.create_friendship(screen_name=screen_name, follow=True)
 
-def search(query: str) -> tweepy.models.SearchResults:
+def search(query: str, max_tweets=100) -> tweepy.models.SearchResults:
     """Given a search string, queries twitter and returns 
-    1000 results.
+    100 results.
     """
-    max_tweets = 1000
     searched_tweets = []
     last_id = -1
     while len(searched_tweets) < max_tweets:
@@ -86,31 +76,29 @@ def main():
 
     # My user information
     my_user = api.me()
+    my_friends = api.friends_ids(my_user.screen_name)
+    my_followers = api.followers_ids(my_user.screen_name)
     
     # Initial search of the users based on a query keyword
-    print(f'[*] Searching using the query: "{query}"')
+    print(f'[*] Searching {tweets} tweets using the query: "{query}"')
     users = search(query)
     
     # Empty list to populate potential candidates to follow.
     candidates = []
     
-    # Only include users that don't already follow me.
-    print('[*] Checking the follower/following status for each user.')
-    count = 1 # Debug
+    # Only include users that I don't have a relationship with.
+    print('[*] Checking the follower/following status for each user.')    
     for user in users:
-        print(count) # Debug
-        count += 1 # Debug
-        follow_status = check_follow_status(user.screen_name, my_user.screen_name)[-1]
-        if follow_status.followed_by == True or follow_status.following == True:
+        if user.id in my_friends or user.id in my_followers:
             continue
         candidates.append(user)
 
     # Only include users that include the proper follower/following ratio.
-    print('[*] Checking user ratio of followers to following.')
+    print(f'[*] Checking user ratio of followers to following for {len(candidates)} users.')
     candidates = [user for user in candidates if check_followers_to_following_ration(user, ratio)]
 
     # Gather data about these users and last n tweets.
-    print("[*] Gathering information about users that likely followback.")
+    print(f"[*] Gathering information about {len(candidates)} users that likely followback.")
     candidates_user_data = {}
     for candidate in candidates:
         candidates_user_data[candidate.screen_name] = get_user_info(candidate)
@@ -139,6 +127,13 @@ if __name__ == '__main__':
                         type=int,
                         help=("Specify an integer that indicates "
                               "ratio of followers to following."))
+    parser.add_argument("-t", "--tweets",
+                        type=int,
+                        choices=range(1,1000),
+                        metavar="[1-1000]",
+                        help=("Specify the number of tweets to search "
+                              "to find users. Default is 100. This  can take ."
+                              "a long time to run depending on number specified."))
     args = parser.parse_args()
 
     # Add your keys here
@@ -150,6 +145,7 @@ if __name__ == '__main__':
     # Specify a default query and ratio if you want
     query = args.query if args.query else 'infosec'
     ratio = (args.ratio if args.ratio else 30) *.01 # Convert to percentage
+    tweets = args.tweets if args.tweets else 100
 
     # Authorizing access
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
