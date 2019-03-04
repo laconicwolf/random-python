@@ -60,7 +60,7 @@ def run_discovery_scan() -> None:
 
 def run_full_scan(addresses: list) -> None:
     """Runs an Nmap scan of specified hosts.
-    nmap -o -iL <addresses> -oA rogues
+    nmap -iL <addresses> -oA rogues
     """
     temp_filename = 'temp_addrs'
     with open(temp_filename, 'w') as fh:
