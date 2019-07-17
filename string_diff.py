@@ -29,7 +29,7 @@ except Exception as e:
     print('[-] An error occurred: \n'.format(e))
     exit()
 
-print('Pos   S1  S2')
+print('Pos   S1  S2\n')
 
 char_num = 0
 for i, j in both:
