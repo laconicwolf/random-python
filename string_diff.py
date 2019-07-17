@@ -7,33 +7,6 @@
 # Adapted from: 
 # https://stackoverflow.com/questions/12226846/count-letter-differences-of-two-strings
 
-# Output
-'''
-python3 string_diff.py "jake the snake is cool" "jake's a snake"
-j = j
-a = a
-k = k
-e = e
-    '
-t   s
-h
-e   a
-  =
-s = s
-n = n
-a = a
-k = k
-e = e
-
-i
-s
-
-c
-o
-o
-l
-'''
-
 import sys
 
 try:
@@ -56,12 +29,19 @@ except Exception as e:
     print('[-] An error occurred: \n'.format(e))
     exit()
 
+print('Pos   S1  S2')
+
+char_num = 0
 for i, j in both:
+    char_num += 1
+    char_pos = str(char_num)
+    while len(char_pos) < 6:
+        char_pos += ' '
     if i == j:
-        print('{} = {}'.format(i, j))
+        print('{}{} = {}'.format(char_pos, i, j))
     else:
         if not i:
             i = ' '
         if not j:
             j = ' '
-        print('{}   {}'.format(i, j))
+        print('{}{}   {}'.format(char_pos, i, j))
