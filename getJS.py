@@ -41,6 +41,7 @@ def main():
 
     driver.quit()
 
+    
 if __name__ == "__main__":
     # Commandline arguments
     parser = argparse.ArgumentParser()
@@ -85,7 +86,7 @@ if __name__ == "__main__":
         search_list = '''
 include
 dependencies
-require()'''.splitlines()
+require('''.splitlines()
 
     # Set some Chrome options
     options = Options()
