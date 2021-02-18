@@ -6,10 +6,12 @@ from selenium.webdriver.chrome.options import Options
 import requests
 
 def get_js_urls(driver):
+    '''Returns a list of URLs from script tags src attributes.'''
     return [i.get_attribute('src') for i in driver.find_elements(By.TAG_NAME,'script')]
 
 
 def search_response(search_list, response):
+    """Searches a response for items in a list and prints the URL if present."""
     for item in search_list:
         index = response.text.find(item)
         if index > 0:
